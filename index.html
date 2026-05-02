@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>保養流程助手 | Skincare Routine Builder</title>
+<style>
+  :root {
+    --bg: #f5f3f0;
+    --card: #ffffff;
+    --text: #2d2d2d;
+    --muted: #888;
+    --accent: #e8927c;
+    --accent2: #7ec4e8;
+    --danger: #e85757;
+    --warn: #f0ad4e;
+    --success: #5cb85c;
+    --am: #ffd166;
+    --pm: #a8dadc;
+    --both: #b8e0d2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding-bottom: 40px;
+  }
+  header {
+    background: linear-gradient(135deg, var(--accent), #d4a373);
+    color: white;
+    padding: 40px 20px;
+    text-align: center;
+  }
+  header h1 { font-size: 1.8rem; margin-bottom: 8px; }
+  header p { opacity: 0.9; font-size: 0.95rem; }
+  .nav { text-align: center; margin: 16px; }
+  .nav a {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.9rem;
+    padding: 6px 14px;
+    border: 1px solid var(--accent);
+    border-radius: 20px;
+    display: inline-block;
+  }
+  .container { max-width: 720px; margin: 0 auto; padding: 20px; }
+  .card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .card h2 {
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  input[type="text"], select {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 1rem;
+    margin-bottom: 12px;
+    transition: border-color 0.2s;
+  }
+  input[type="text"]:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .ingredient-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .tag {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border: 1.5px solid #e0e0e0;
+    background: #fafafa;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .tag:hover { border-color: var(--accent); }
+  .tag.selected {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  .tag[data-cat="acid"] { border-color: #ffcccb; }
+  .tag[data-cat="acid"].selected { background: #ff6b6b; }
+  .tag[data-cat="retinoid"] { border-color: #ffd6a5; }
+  .tag[data-cat="retinoid"].selected { background: #f4a261; }
+  .tag[data-cat="vitaminc"] { border-color: #caffbf; }
+  .tag[data-cat="vitaminc"].selected { background: #52b788; }
+  .tag[data-cat="niacinamide"] { border-color: #bdb2ff; }
+  .tag[data-cat="niacinamide"].selected { background: #9d4edd; }
+  .tag[data-cat="hydration"] { border-color: #a0c4ff; }
+  .tag[data-cat="hydration"].selected { background: #4895ef; }
+  .tag[data-cat="sunscreen"] { border-color: #fdffb6; }
+  .tag[data-cat="sunscreen"].selected { background: #e9c46a; color: #333; }
+  .tag[data-cat="peptide"] { border-color: #ffc6ff; }
+  .tag[data-cat="peptide"].selected { background: #c77dff; }
+  .tag[data-cat="soothing"] { border-color: #caffbf; }
+  .tag[data-cat="soothing"].selected { background: #99d98c; }
+  .tag[data-cat="antioxidant"] { border-color: #ffecd1; }
+  .tag[data-cat="antioxidant"].selected { background: #e76f51; }
+
+  .btn {
+    display: inline-block;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.2s;
+    font-weight: 600;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #d4a373);
+    color: white;
+    width: 100%;
+  }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .routine-section { margin-top: 24px; }
+  .routine-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .routine-tab {
+    flex: 1;
+    padding: 10px;
+    border-radius: 12px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+  .routine-tab.am { background: var(--am); color: #5c4b00; }
+  .routine-tab.pm { background: var(--pm); color: #003d5c; }
+  .routine-tab.both { background: var(--both); color: #1a4d3a; }
+  .routine-tab.active { box-shadow: 0 0 0 2px var(--text); }
+
+  .product-list { display: flex; flex-direction: column; gap: 10px; }
+  .product-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: #fafafa;
+    border-radius: 12px;
+    border-left: 4px solid #ddd;
+  }
+  .product-item.am { border-left-color: var(--am); }
+  .product-item.pm { border-left-color: var(--pm); }
+  .product-item.both { border-left-color: var(--both); }
+  .product-item .name { flex: 1; font-weight: 600; }
+  .product-item .time-badge {
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+  }
+  .product-item .time-badge.am { background: var(--am); color: #5c4b00; }
+  .product-item .time-badge.pm { background: var(--pm); color: #003d5c; }
+  .product-item .time-badge.both { background: var(--both); color: #1a4d3a; }
+  .product-item .remove-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 4px;
+  }
+
+  .conflict-box {
+    background: #fff0f0;
+    border: 1.5px solid var(--danger);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 16px;
+  }
+  .conflict-box .title {
+    color: var(--danger);
+    font-weight: 700;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .conflict-item {
+    padding: 8px 0;
+    border-bottom: 1px solid #ffe0e0;
+    font-size: 0.9rem;
+  }
+  .conflict-item:last-child { border-bottom: none; }
+
+  .warning-box {
+    background: #fff8e6;
+    border: 1.5px solid var(--warn);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 16px;
+  }
+  .warning-box .title {
+    color: #a07000;
+    font-weight: 700;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .share-card {
+    background: linear-gradient(135deg, #fff5f2, #fff);
+    border: 2px solid var(--accent);
+    border-radius: 20px;
+    padding: 32px;
+    text-align: center;
+    margin-top: 24px;
+  }
+  .share-card h3 {
+    color: var(--accent);
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+  }
+  .share-routine {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    text-align: left;
+    max-width: 400px;
+    margin: 0 auto 20px;
+  }
+  .share-step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .share-step-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .share-step-name { font-weight: 600; }
+  .share-step-note { font-size: 0.8rem; color: var(--muted); margin-left: auto; }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+  .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 480px) {
+    header h1 { font-size: 1.4rem; }
+    .card { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🧴 保養流程助手</h1>
+  <p>輸入你的保養品，幫你排好早晚順序、檢查成分衝突</p>
+</header>
+
+<div class="nav">
+</div>
+
+<div class="container">
+
+  <!-- 新增產品 -->
+  <div class="card">
+    <h2>➕ 新增保養品</h2>
+    <input type="text" id="productName" placeholder="輸入保養品名稱，例如：理膚寶水 B5 精華">
+
+    <p style="font-size:0.85rem;color:var(--muted);margin-bottom:10px;">選擇主要成分（可複選）：</p>
+    <div class="ingredient-tags" id="ingredientTags"></div>
+
+    <p style="font-size:0.85rem;color:var(--muted);margin-bottom:10px;">或使用預設產品：</p>
+    <select id="presetProduct">
+      <option value="">-- 選擇常用產品 --</option>
+    </select>
+
+    <button class="btn btn-primary" id="addBtn" onclick="addProduct()">加入我的流程</button>
+
+    <div id="productPreview" style="margin-top:16px;display:none;">
+      <p style="font-size:0.85rem;color:var(--muted);">
+        💡 預判：這瓶適合 <strong id="previewTime" style="color:var(--accent);"></strong>
+      </p>
+    </div>
+  </div>
+
+  <!-- 我的流程 -->
+  <div class="card">
+    <h2>📋 我的保養流程</h2>
+
+    <div class="routine-tabs">
+      <button class="routine-tab am active" onclick="switchTab('am')">☀️ 早上</button>
+      <button class="routine-tab pm" onclick="switchTab('pm')">🌙 晚上</button>
+      <button class="routine-tab both" onclick="switchTab('both')">🔄 皆可</button>
+    </div>
+
+    <div id="routineList" class="product-list">
+      <div class="empty-state">
+        <div class="icon">🫧</div>
+        <p>還沒有保養品，快去新增吧！</p>
+      </div>
+    </div>
+
+    <div id="conflictArea"></div>
+  </div>
+
+  <!-- 分享卡片 -->
+  <div class="card" id="shareSection" style="display:none;">
+    <h2>✨ 分享我的流程</h2>
+    <div class="share-card" id="shareCard">
+      <h3>🧴 我的保養流程</h3>
+      <div class="share-routine" id="shareAm">
+        <p style="text-align:center;color:var(--muted);font-size:0.9rem;">☀️ 早上</p>
+      </div>
+      <div class="share-routine" id="sharePm">
+        <p style="text-align:center;color:var(--muted);font-size:0.9rem;">🌙 晚上</p>
+      </div>
+      <p style="font-size:0.75rem;color:var(--muted);margin-top:12px;">Generated by 保養流程助手</p>
+    </div>
+    <button class="btn btn-primary" style="margin-top:16px;" onclick="downloadCard()">📥 下載分享卡片</button>
+  </div>
+
+</div>
+
+<script>
+// ===== 成分資料庫 =====
+const INGREDIENTS = {
+  '水楊酸': { cat: 'acid', time: 'pm', note: '酸類建議晚上用' },
+  '果酸': { cat: 'acid', time: 'pm', note: '酸類建議晚上用' },
+  '杏仁酸': { cat: 'acid', time: 'pm', note: '酸類建議晚上用' },
+  '乳酸': { cat: 'acid', time: 'pm', note: '酸類建議晚上用' },
+  '甘醇酸': { cat: 'acid', time: 'pm', note: '酸類建議晚上用' },
+  'A醇': { cat: 'retinoid', time: 'pm', note: 'A醇晚上用，白天要防曬' },
+  '視黃醇': { cat: 'retinoid', time: 'pm', note: 'A醇晚上用，白天要防曬' },
+  'A醛': { cat: 'retinoid', time: 'pm', note: 'A醇晚上用，白天要防曬' },
+  'A酸': { cat: 'retinoid', time: 'pm', note: 'A酸晚上用，需醫師指示' },
+  '維他命C': { cat: 'vitaminc', time: 'am', note: '早上用，搭配防曬效果更好' },
+  '左旋C': { cat: 'vitaminc', time: 'am', note: '早上用，搭配防曬效果更好' },
+  '乙基維他命C': { cat: 'vitaminc', time: 'am', note: '早上用，搭配防曬效果更好' },
+  '菸鹼醯胺': { cat: 'niacinamide', time: 'both', note: '早晚皆可' },
+  '玻尿酸': { cat: 'hydration', time: 'both', note: '早晚皆可' },
+  '神經醯胺': { cat: 'hydration', time: 'both', note: '早晚皆可' },
+  '角鯊烷': { cat: 'hydration', time: 'both', note: '早晚皆可' },
+  '甘油': { cat: 'hydration', time: 'both', note: '早晚皆可' },
+  '泛醇': { cat: 'hydration', time: 'both', note: '早晚皆可' },
+  '防曬': { cat: 'sunscreen', time: 'am', note: '早上最後一步' },
+  '防曬乳': { cat: 'sunscreen', time: 'am', note: '早上最後一步' },
+  '胜肽': { cat: 'peptide', time: 'both', note: '早晚皆可' },
+  '藍銅胜肽': { cat: 'peptide', time: 'both', note: '早晚皆可，避免跟酸/C一起' },
+  '積雪草': { cat: 'soothing', time: 'both', note: '早晚皆可' },
+  '蘆薈': { cat: 'soothing', time: 'both', note: '早晚皆可' },
+  '洋甘菊': { cat: 'soothing', time: 'both', note: '早晚皆可' },
+  '維他命E': { cat: 'antioxidant', time: 'both', note: '早晚皆可' },
+  '白藜蘆醇': { cat: 'antioxidant', time: 'both', note: '早晚皆可' },
+  '傳明酸': { cat: 'antioxidant', time: 'both', note: '早晚皆可' },
+  '熊果素': { cat: 'antioxidant', time: 'both', note: '晚上用較佳' },
+  '益生菌': { cat: 'soothing', time: 'both', note: '早晚皆可' },
+  '酵母': { cat: 'antioxidant', time: 'both', note: '早晚皆可' },
+};
+
+// 衝突規則
+const CONFLICTS = [
+  { cats: ['acid', 'retinoid'], level: 'danger', msg: '酸類 + A醇 = 雙重去角質，容易過敏脫皮。建議分開天數使用（例：一三五A醇，二四六酸類）' },
+  { cats: ['acid', 'acid'], level: 'warn', msg: '兩種酸類疊加會過度刺激。建議一次只用一種酸' },
+  { cats: ['vitaminc', 'acid'], level: 'warn', msg: '維他命C + 酸類 = pH衝突，可能刺激。建議分開時段（C早上、酸晚上）' },
+  { cats: ['vitaminc', 'retinoid'], level: 'warn', msg: '維他命C + A醇 = pH和穩定性衝突。建議分開時段（C早上、A醇晚上）' },
+  { cats: ['niacinamide', 'acid'], level: 'caution', msg: '菸鹼醯胺 + 酸類 = 高濃度時可能產生菸鹼酸（泛紅）。一般濃度下現代配方安全，敏感肌建議分開' },
+  { cats: ['peptide', 'acid'], level: 'caution', msg: '胜肽 + 酸類 = 低pH可能破壞胜肽結構。建議分開時段使用' },
+  { cats: ['peptide', 'vitaminc'], level: 'caution', msg: '蓝銅胜肽 + 維他命C = 可能影響胜肽穩定性。建議分開時段' },
+  { cats: ['vitaminc', 'sunscreen'], level: 'good', msg: '維他命C + 防曬 = 絕配！C是抗氧化劑，能加強防曬效果' },
+  { cats: ['niacinamide', 'hydration'], level: 'good', msg: '菸鹼醯胺 + 保濕 = 絕配！保濕成分能緩衝菸鹼醯胺的刺激' },
+  { cats: ['retinoid', 'hydration'], level: 'good', msg: 'A醇 + 保濕 = 絕配！保濕能減少A醇造成的乾燥脫皮' },
+];
+
+// 預設產品
+const PRESETS = {
+  '理膚寶水 B5 精華': ['泛醇', '積雪草', '玻尿酸'],
+  '寵愛之名 杏仁酸': ['杏仁酸'],
+  '寶拉珍選 2%水楊酸': ['水楊酸'],
+  'Dr. Wu 達爾膚 18%杏仁酸': ['杏仁酸'],
+  'A醇精華 (0.3%)': ['A醇'],
+  'A醇精華 (1%)': ['A醇'],
+  'Timeless 維他命C': ['維他命C'],
+  'Obagi 左旋C': ['左旋C'],
+  'The Ordinary 菸鹼醯胺 10%': ['菸鹼醯胺'],
+  'The Ordinary 玻尿酸': ['玻尿酸'],
+  'CeraVe 保濕乳': ['神經醯胺', '玻尿酸', '甘油'],
+  '安耐曬 金鑽防曬': ['防曬'],
+  'ALLIE 防曬': ['防曬'],
+  'SK-II 青春露': ['酵母'],
+  '小棕瓶': ['酵母', '胜肽'],
+  '綠藤生機 純粹保濕精華': ['玻尿酸', '甘油'],
+};
+
+let myProducts = [];
+let currentTab = 'am';
+
+// 初始化成分標籤
+function initTags() {
+  const container = document.getElementById('ingredientTags');
+  Object.entries(INGREDIENTS).forEach(([name, data]) => {
+    const tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.dataset.cat = data.cat;
+    tag.dataset.name = name;
+    tag.textContent = name;
+    tag.onclick = () => {
+      tag.classList.toggle('selected');
+      updatePreview();
+    };
+    container.appendChild(tag);
+  });
+}
+
+// 初始化預設產品
+function initPresets() {
+  const select = document.getElementById('presetProduct');
+  Object.keys(PRESETS).forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    select.appendChild(opt);
+  });
+  select.onchange = () => {
+    const name = select.value;
+    if (!name) return;
+    document.getElementById('productName').value = name;
+    // 選中對應成分
+    const ings = PRESETS[name];
+    document.querySelectorAll('.tag').forEach(t => {
+      t.classList.toggle('selected', ings.includes(t.dataset.name));
+    });
+    updatePreview();
+  };
+}
+
+// 預覽使用時機
+function updatePreview() {
+  const selected = [...document.querySelectorAll('.tag.selected')].map(t => INGREDIENTS[t.dataset.name]);
+  if (selected.length === 0) {
+    document.getElementById('productPreview').style.display = 'none';
+    return;
+  }
+  const times = selected.map(s => s.time);
+  let time = 'both';
+  if (times.every(t => t === 'am')) time = 'am';
+  else if (times.every(t => t === 'pm')) time = 'pm';
+
+  const timeText = { am: '☀️ 早上', pm: '🌙 晚上', both: '🔄 早晚皆可' };
+  document.getElementById('previewTime').textContent = timeText[time];
+  document.getElementById('productPreview').style.display = 'block';
+}
+
+function addProduct() {
+  const name = document.getElementById('productName').value.trim();
+  const selectedTags = [...document.querySelectorAll('.tag.selected')];
+  const ingredients = selectedTags.map(t => ({ name: t.dataset.name, ...INGREDIENTS[t.dataset.name] }));
+
+  if (!name && selectedTags.length === 0) {
+    alert('請輸入產品名稱或選擇成分');
+    return;
+  }
+
+  const times = ingredients.map(i => i.time);
+  let time = 'both';
+  if (times.every(t => t === 'am')) time = 'am';
+  else if (times.every(t => t === 'pm')) time = 'pm';
+
+  const productName = name || selectedTags.map(t => t.dataset.name).join(' + ');
+
+  myProducts.push({
+    id: Date.now(),
+    name: productName,
+    ingredients,
+    time,
+  });
+
+  // 重置表單
+  document.getElementById('productName').value = '';
+  document.getElementById('presetProduct').value = '';
+  document.querySelectorAll('.tag.selected').forEach(t => t.classList.remove('selected'));
+  document.getElementById('productPreview').style.display = 'none';
+
+  renderRoutine();
+}
+
+function removeProduct(id) {
+  myProducts = myProducts.filter(p => p.id !== id);
+  renderRoutine();
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.routine-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.routine-tab.${tab}`).classList.add('active');
+  renderRoutine();
+}
+
+function renderRoutine() {
+  const list = document.getElementById('routineList');
+  const filtered = myProducts.filter(p => p.time === currentTab || p.time === 'both');
+
+  if (filtered.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">🫧</div>
+        <p>${currentTab === 'am' ? '早上' : currentTab === 'pm' ? '晚上' : '皆可'}還沒有保養品</p>
+      </div>`;
+  } else {
+    list.innerHTML = filtered.map((p, idx) => `
+      <div class="product-item ${p.time}">
+        <span class="share-step-num">${idx + 1}</span>
+        <span class="name">${p.name}</span>
+        <span class="time-badge ${p.time}">${p.time === 'am' ? '☀️ 早上' : p.time === 'pm' ? '🌙 晚上' : '🔄 皆可'}</span>
+        <button class="remove-btn" onclick="removeProduct(${p.id})">✕</button>
+      </div>
+    `).join('');
+  }
+
+  checkConflicts();
+  renderShareSection();
+}
+
+function checkConflicts() {
+  const area = document.getElementById('conflictArea');
+  if (myProducts.length < 2) { area.innerHTML = ''; return; }
+
+  const allIngredients = myProducts.flatMap(p => p.ingredients);
+  const allCats = allIngredients.map(i => i.cat);
+  const found = [];
+
+  CONFLICTS.forEach(rule => {
+    const [c1, c2] = rule.cats;
+    const hasC1 = allCats.includes(c1);
+    const hasC2 = allCats.includes(c2);
+    if (hasC1 && hasC2) {
+      // 檢查是否同一時段
+      const p1 = myProducts.find(p => p.ingredients.some(i => i.cat === c1));
+      const p2 = myProducts.find(p => p.ingredients.some(i => i.cat === c2));
+      if (p1 && p2 && (p1.time === p2.time || p1.time === 'both' || p2.time === 'both')) {
+        found.push(rule);
+      }
+    }
+  });
+
+  if (found.length === 0) {
+    area.innerHTML = `
+      <div class="warning-box" style="background:#e8f5e9;border-color:#4caf50;">
+        <div class="title" style="color:#2e7d32;">✅ 目前流程沒有衝突</div>
+        <p style="font-size:0.9rem;color:#555;">你的保養品搭配很安全，繼續保持！</p>
+      </div>`;
+    return;
+  }
+
+  const dangers = found.filter(f => f.level === 'danger');
+  const warns = found.filter(f => f.level === 'warn' || f.level === 'caution');
+
+  let html = '';
+  if (dangers.length > 0) {
+    html += `<div class="conflict-box">
+      <div class="title">🚫 嚴重衝突（建議避免同時使用）</div>
+      ${dangers.map(d => `<div class="conflict-item">${d.msg}</div>`).join('')}
+    </div>`;
+  }
+  if (warns.length > 0) {
+    html += `<div class="warning-box">
+      <div class="title">⚠️ 注意事項</div>
+      ${warns.map(w => `<div class="conflict-item">${w.msg}</div>`).join('')}
+    </div>`;
+  }
+  area.innerHTML = html;
+}
+
+function renderShareSection() {
+  const section = document.getElementById('shareSection');
+  if (myProducts.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+
+  const amProducts = myProducts.filter(p => p.time === 'am' || p.time === 'both');
+  const pmProducts = myProducts.filter(p => p.time === 'pm' || p.time === 'both');
+
+  const renderSteps = (products) => products.map((p, i) => `
+    <div class="share-step">
+      <span class="share-step-num">${i + 1}</span>
+      <span class="share-step-name">${p.name}</span>
+    </div>
+  `).join('');
+
+  document.getElementById('shareAm').innerHTML =
+    '<p style="text-align:center;color:var(--muted);font-size:0.9rem;margin-bottom:8px;">☀️ 早上</p>' +
+    (amProducts.length ? renderSteps(amProducts) : '<p style="text-align:center;color:#bbb;font-size:0.85rem;">尚無產品</p>');
+
+  document.getElementById('sharePm').innerHTML =
+    '<p style="text-align:center;color:var(--muted);font-size:0.9rem;margin-bottom:8px;">🌙 晚上</p>' +
+    (pmProducts.length ? renderSteps(pmProducts) : '<p style="text-align:center;color:#bbb;font-size:0.85rem;">尚無產品</p>');
+}
+
+function downloadCard() {
+  alert('📸 分享功能：請直接截圖分享卡片！\n\n進階版可整合 html2canvas 自動生成圖片下載。');
+}
+
+// 初始化
+initTags();
+initPresets();
+</script>
+
+</body>
+</html>
