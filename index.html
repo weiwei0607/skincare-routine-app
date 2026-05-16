@@ -294,21 +294,21 @@
   <!-- 新增產品 -->
   <div class="card">
     <h2>➕ 新增保養品</h2>
-    <input type="text" id="productName" placeholder="輸入保養品名稱，例如：理膚寶水 B5 精華">
+    <input type="text" id="productName" maxlength="100" placeholder="輸入保養品名稱，例如：理膚寶水 B5 精華">
 
     <p style="font-size:0.85rem;color:var(--muted);margin-bottom:10px;">選擇主要成分（可複選）：</p>
     <div class="ingredient-tags" id="ingredientTags"></div>
 
     <p style="font-size:0.85rem;color:var(--muted);margin-bottom:10px;">或使用預設產品：</p>
     <select id="presetProduct">
-      <option value="">-- 選擇常用產品 --</option>
+      <option value="">—— 選擇常用產品 ——</option>
     </select>
 
     <button class="btn btn-primary" id="addBtn" onclick="addProduct()">加入我的流程</button>
 
     <div id="productPreview" style="margin-top:16px;display:none;">
       <p style="font-size:0.85rem;color:var(--muted);">
-        💡 預判：這瓶適合 <strong id="previewTime" style="color:var(--accent);"></strong>
+        💡 預判：這甁適合 <strong id="previewTime" style="color:var(--accent);"></strong>
       </p>
     </div>
   </div>
@@ -359,28 +359,28 @@ const INGREDIENTS = {
   '杏仁酸': { cat: 'acid', time: 'pm', note: '酸類建議晚上用' },
   '乳酸': { cat: 'acid', time: 'pm', note: '酸類建議晚上用' },
   '甘醇酸': { cat: 'acid', time: 'pm', note: '酸類建議晚上用' },
-  'A醇': { cat: 'retinoid', time: 'pm', note: 'A醇晚上用，白天要防曬' },
-  '視黃醇': { cat: 'retinoid', time: 'pm', note: 'A醇晚上用，白天要防曬' },
-  'A醛': { cat: 'retinoid', time: 'pm', note: 'A醇晚上用，白天要防曬' },
+  'A醒': { cat: 'retinoid', time: 'pm', note: 'A醒晚上用，白天要防晁' },
+  '視黃醒': { cat: 'retinoid', time: 'pm', note: 'A醒晚上用，白天要防晁' },
+  'A醐': { cat: 'retinoid', time: 'pm', note: 'A醒晚上用，白天要防晁' },
   'A酸': { cat: 'retinoid', time: 'pm', note: 'A酸晚上用，需醫師指示' },
-  '維他命C': { cat: 'vitaminc', time: 'am', note: '早上用，搭配防曬效果更好' },
-  '左旋C': { cat: 'vitaminc', time: 'am', note: '早上用，搭配防曬效果更好' },
-  '乙基維他命C': { cat: 'vitaminc', time: 'am', note: '早上用，搭配防曬效果更好' },
-  '菸鹼醯胺': { cat: 'niacinamide', time: 'both', note: '早晚皆可' },
+  '維他命素C': { cat: 'vitaminc', time: 'am', note: '早上用，搦配防晁效果更好' },
+  '左旋文C': { cat: 'vitaminc', time: 'am', note: '早上用，搦配防晁效果更好' },
+  '乙基維他命素C': { cat: 'vitaminc', time: 'am', note: '早上用，搦配防晁效果更好' },
+  '菸釸醯胺': { cat: 'niacinamide', time: 'both', note: '早晚皆可' },
   '玻尿酸': { cat: 'hydration', time: 'both', note: '早晚皆可' },
-  '神經醯胺': { cat: 'hydration', time: 'both', note: '早晚皆可' },
-  '角鯊烷': { cat: 'hydration', time: 'both', note: '早晚皆可' },
-  '甘油': { cat: 'hydration', time: 'both', note: '早晚皆可' },
-  '泛醇': { cat: 'hydration', time: 'both', note: '早晚皆可' },
-  '防曬': { cat: 'sunscreen', time: 'am', note: '早上最後一步' },
-  '防曬乳': { cat: 'sunscreen', time: 'am', note: '早上最後一步' },
+  '神經醒胺': { cat: 'hydration', time: 'both', note: '早晚皆可' },
+  '角鬯烷': { cat: 'hydration', time: 'both', note: '早晚皆可' },
+  '焐油': { cat: 'hydration', time: 'both', note: '早晚皆可' },
+  '泛醒': { cat: 'hydration', time: 'both', note: '早晚皆可' },
+  '防晁': { cat: 'sunscreen', time: 'am', note: '早上最後一步' },
+  '防晁乳': { cat: 'sunscreen', time: 'am', note: '早上最後一步' },
   '胜肽': { cat: 'peptide', time: 'both', note: '早晚皆可' },
   '藍銅胜肽': { cat: 'peptide', time: 'both', note: '早晚皆可，避免跟酸/C一起' },
   '積雪草': { cat: 'soothing', time: 'both', note: '早晚皆可' },
-  '蘆薈': { cat: 'soothing', time: 'both', note: '早晚皆可' },
+  '蘆蘎': { cat: 'soothing', time: 'both', note: '早晚皆可' },
   '洋甘菊': { cat: 'soothing', time: 'both', note: '早晚皆可' },
-  '維他命E': { cat: 'antioxidant', time: 'both', note: '早晚皆可' },
-  '白藜蘆醇': { cat: 'antioxidant', time: 'both', note: '早晚皆可' },
+  '維他命素E': { cat: 'antioxidant', time: 'both', note: '早晚皆可' },
+  '白藜壆醒': { cat: 'antioxidant', time: 'both', note: '早晚皆可' },
   '傳明酸': { cat: 'antioxidant', time: 'both', note: '早晚皆可' },
   '熊果素': { cat: 'antioxidant', time: 'both', note: '晚上用較佳' },
   '益生菌': { cat: 'soothing', time: 'both', note: '早晚皆可' },
@@ -389,42 +389,48 @@ const INGREDIENTS = {
 
 // 衝突規則
 const CONFLICTS = [
-  { cats: ['acid', 'retinoid'], level: 'danger', msg: '酸類 + A醇 = 雙重去角質，容易過敏脫皮。建議分開天數使用（例：一三五A醇，二四六酸類）' },
+  { cats: ['acid', 'retinoid'], level: 'danger', msg: '酸類 + A醒 = 雙重去角質，容易過敏脫皮。建議分開天數使用（例：一三五A醒，二四六酸類）' },
   { cats: ['acid', 'acid'], level: 'warn', msg: '兩種酸類疊加會過度刺激。建議一次只用一種酸' },
-  { cats: ['vitaminc', 'acid'], level: 'warn', msg: '維他命C + 酸類 = pH衝突，可能刺激。建議分開時段（C早上、酸晚上）' },
-  { cats: ['vitaminc', 'retinoid'], level: 'warn', msg: '維他命C + A醇 = pH和穩定性衝突。建議分開時段（C早上、A醇晚上）' },
-  { cats: ['niacinamide', 'acid'], level: 'caution', msg: '菸鹼醯胺 + 酸類 = 高濃度時可能產生菸鹼酸（泛紅）。一般濃度下現代配方安全，敏感肌建議分開' },
+  { cats: ['vitaminc', 'acid'], level: 'warn', msg: '維他命素C + 酸類 = pH衝突，可能刺激。建議分開時段（C早上、酸晚上）' },
+  { cats: ['vitaminc', 'retinoid'], level: 'warn', msg: '維他命素C + A醒 = pH和穩定性衝突。建議分開時段（C早上、A醒晚上）' },
+  { cats: ['niacinamide', 'acid'], level: 'caution', msg: '菸釸醯胺 + 酸類 = 高濃度時可能產生菸釸酸（泛紅）。一般濃度下現代配方安全，敏感肌建議分開' },
   { cats: ['peptide', 'acid'], level: 'caution', msg: '胜肽 + 酸類 = 低pH可能破壞胜肽結構。建議分開時段使用' },
-  { cats: ['peptide', 'vitaminc'], level: 'caution', msg: '蓝銅胜肽 + 維他命C = 可能影響胜肽穩定性。建議分開時段' },
-  { cats: ['vitaminc', 'sunscreen'], level: 'good', msg: '維他命C + 防曬 = 絕配！C是抗氧化劑，能加強防曬效果' },
-  { cats: ['niacinamide', 'hydration'], level: 'good', msg: '菸鹼醯胺 + 保濕 = 絕配！保濕成分能緩衝菸鹼醯胺的刺激' },
-  { cats: ['retinoid', 'hydration'], level: 'good', msg: 'A醇 + 保濕 = 絕配！保濕能減少A醇造成的乾燥脫皮' },
+  { cats: ['peptide', 'vitaminc'], level: 'caution', msg: '藍銅胜肽 + 維他命素C = 可能影響胜肽穩定性。建議分開時段' },
+  { cats: ['vitaminc', 'sunscreen'], level: 'good', msg: '維他命素C + 防晁 = 絕配！C是抗氧化劑，能加強防晁效果' },
+  { cats: ['niacinamide', 'hydration'], level: 'good', msg: '菸釸醯胺 + 保濕 = 絕配！保濕成分能緩衝菸釸醯胺的刺激' },
+  { cats: ['retinoid', 'hydration'], level: 'good', msg: 'A醒 + 保濕 = 絕配！保濕能減少A醒造成的乾燥脫皮' },
 ];
 
 // 預設產品
 const PRESETS = {
-  '理膚寶水 B5 精華': ['泛醇', '積雪草', '玻尿酸'],
+  '理膚寶水 B5 精華': ['泛醒', '積雪草', '玻尿酸'],
   '寵愛之名 杏仁酸': ['杏仁酸'],
   '寶拉珍選 2%水楊酸': ['水楊酸'],
   'Dr. Wu 達爾膚 18%杏仁酸': ['杏仁酸'],
-  'A醇精華 (0.3%)': ['A醇'],
-  'A醇精華 (1%)': ['A醇'],
-  'Timeless 維他命C': ['維他命C'],
-  'Obagi 左旋C': ['左旋C'],
-  'The Ordinary 菸鹼醯胺 10%': ['菸鹼醯胺'],
+  'A醒精華 (0.3%)': ['A醒'],
+  'A醒精華 (1%)': ['A醒'],
+  'Timeless 維他命素C': ['維他命素C'],
+  'Obagi 左旋文C': ['左旋文C'],
+  'The Ordinary 菸釸醯胺 10%': ['菸釸醯胺'],
   'The Ordinary 玻尿酸': ['玻尿酸'],
-  'CeraVe 保濕乳': ['神經醯胺', '玻尿酸', '甘油'],
-  '安耐曬 金鑽防曬': ['防曬'],
-  'ALLIE 防曬': ['防曬'],
+  'CeraVe 保濕乳': ['神經醒胺', '玻尿酸', '焐油'],
+  '安耕晁 金鸽防晁': ['防晁'],
+  'ALLIE 防晁': ['防晁'],
   'SK-II 青春露': ['酵母'],
   '小棕瓶': ['酵母', '胜肽'],
-  '綠藤生機 純粹保濕精華': ['玻尿酸', '甘油'],
+  '綠藤生機 純粹保濕精華': ['玻尿酸', '焐油'],
 };
 
 let myProducts = [];
 let currentTab = 'am';
 
-// 初始化成分標籤
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = String(text);
+  return div.innerHTML;
+}
+
+// 初始化成分標簽
 function initTags() {
   const container = document.getElementById('ingredientTags');
   Object.entries(INGREDIENTS).forEach(([name, data]) => {
@@ -454,7 +460,6 @@ function initPresets() {
     const name = select.value;
     if (!name) return;
     document.getElementById('productName').value = name;
-    // 選中對應成分
     const ings = PRESETS[name];
     document.querySelectorAll('.tag').forEach(t => {
       t.classList.toggle('selected', ings.includes(t.dataset.name));
@@ -504,7 +509,6 @@ function addProduct() {
     time,
   });
 
-  // 重置表單
   document.getElementById('productName').value = '';
   document.getElementById('presetProduct').value = '';
   document.querySelectorAll('.tag.selected').forEach(t => t.classList.remove('selected'));
@@ -539,7 +543,7 @@ function renderRoutine() {
     list.innerHTML = filtered.map((p, idx) => `
       <div class="product-item ${p.time}">
         <span class="share-step-num">${idx + 1}</span>
-        <span class="name">${p.name}</span>
+        <span class="name">${escapeHtml(p.name)}</span>
         <span class="time-badge ${p.time}">${p.time === 'am' ? '☀️ 早上' : p.time === 'pm' ? '🌙 晚上' : '🔄 皆可'}</span>
         <button class="remove-btn" onclick="removeProduct(${p.id})">✕</button>
       </div>
@@ -563,9 +567,9 @@ function checkConflicts() {
     const hasC1 = allCats.includes(c1);
     const hasC2 = allCats.includes(c2);
     if (hasC1 && hasC2) {
-      // 檢查是否同一時段
-      const p1 = myProducts.find(p => p.ingredients.some(i => i.cat === c1));
-      const p2 = myProducts.find(p => p.ingredients.some(i => i.cat === c2));
+      const idx1 = myProducts.findIndex(p => p.ingredients.some(i => i.cat === c1));
+      const p1 = myProducts[idx1];
+      const p2 = myProducts.find((p, idx) => idx !== idx1 && p.ingredients.some(i => i.cat === c2));
       if (p1 && p2 && (p1.time === p2.time || p1.time === 'both' || p2.time === 'both')) {
         found.push(rule);
       }
@@ -576,7 +580,7 @@ function checkConflicts() {
     area.innerHTML = `
       <div class="warning-box" style="background:#e8f5e9;border-color:#4caf50;">
         <div class="title" style="color:#2e7d32;">✅ 目前流程沒有衝突</div>
-        <p style="font-size:0.9rem;color:#555;">你的保養品搭配很安全，繼續保持！</p>
+        <p style="font-size:0.9rem;color:#555;">你的保養品搦配很安全，繼續保持！</p>
       </div>`;
     return;
   }
@@ -611,7 +615,7 @@ function renderShareSection() {
   const renderSteps = (products) => products.map((p, i) => `
     <div class="share-step">
       <span class="share-step-num">${i + 1}</span>
-      <span class="share-step-name">${p.name}</span>
+      <span class="share-step-name">${escapeHtml(p.name)}</span>
     </div>
   `).join('');
 
