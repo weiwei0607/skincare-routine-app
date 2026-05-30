@@ -273,6 +273,67 @@
 
   .hidden { display: none !important; }
 
+  /* 效期相關 */
+  .expiry-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+  .expiry-badge {
+    font-size: 0.72rem;
+    padding: 3px 9px;
+    border-radius: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .expiry-badge.ok { background: #e8f5e9; color: #2e7d32; }
+  .expiry-badge.warn { background: #fff8e1; color: #f57f17; }
+  .expiry-badge.danger { background: #ffeaea; color: #c62828; }
+  .expiry-badge.none { background: #f5f5f5; color: #999; }
+  .set-date-btn {
+    font-size: 0.72rem;
+    color: var(--accent);
+    background: none;
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    padding: 2px 8px;
+    cursor: pointer;
+  }
+  .expiry-warning-box {
+    background: #fff3e0;
+    border: 1.5px solid #ff9800;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  .expiry-warning-box .title {
+    color: #e65100;
+    font-weight: 700;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+  }
+  .expiry-warning-item {
+    font-size: 0.85rem;
+    padding: 4px 0;
+    border-bottom: 1px solid #ffe0b2;
+    color: #555;
+  }
+  .expiry-warning-item:last-child { border-bottom: none; }
+  .form-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .form-row > * { flex: 1; margin-bottom: 0; }
+  .form-label {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-bottom: 5px;
+    display: block;
+  }
+
   @media (max-width: 480px) {
     header h1 { font-size: 1.4rem; }
     .card { padding: 18px; }
@@ -301,6 +362,24 @@
       <option value="">-- 選擇常用產品 --</option>
     </select>
 
+    <div class="form-row" style="margin-bottom:12px;">
+      <div>
+        <label class="form-label">📦 開封效期（PAO）</label>
+        <select id="paoPicker" style="margin-bottom:0;">
+          <option value="6">6 個月</option>
+          <option value="9">9 個月</option>
+          <option value="12" selected>12 個月</option>
+          <option value="18">18 個月</option>
+          <option value="24">24 個月</option>
+          <option value="36">36 個月</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">📅 開封日期（選填）</label>
+        <input type="date" id="openedDate" style="margin-bottom:0;">
+      </div>
+    </div>
+
     <button class="btn btn-primary" id="addBtn" onclick="addProduct()">加入我的流程</button>
 
     <div id="productPreview" style="margin-top:16px;display:none;">
@@ -319,6 +398,8 @@
       <button class="routine-tab pm" onclick="switchTab('pm')">🌙 晚上</button>
       <button class="routine-tab both" onclick="switchTab('both')">🔄 皆可</button>
     </div>
+
+    <div id="expiryWarningArea"></div>
 
     <div id="routineList" class="product-list">
       <div class="empty-state">
@@ -422,6 +503,32 @@ const PRESETS = {
 let myProducts = [];
 let currentTab = 'am';
 
+// 計算效期資訊
+function getExpiryInfo(p) {
+  if (!p.openedDate) return { status: 'none', text: '未記錄開封日', daysLeft: null };
+  const opened = new Date(p.openedDate);
+  const paoMonths = p.pao || 12;
+  const expiry = new Date(opened);
+  expiry.setMonth(expiry.getMonth() + paoMonths);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const daysLeft = Math.round((expiry - today) / (1000 * 60 * 60 * 24));
+  if (daysLeft < 0) return { status: 'danger', text: `⚠️ 已過期 ${Math.abs(daysLeft)} 天`, daysLeft };
+  if (daysLeft <= 30) return { status: 'warn', text: `🔶 還有 ${daysLeft} 天到期`, daysLeft };
+  return { status: 'ok', text: `✅ 還有 ${daysLeft} 天`, daysLeft };
+}
+
+function setOpenedDate(id) {
+  const today = new Date().toISOString().split('T')[0];
+  const dateStr = prompt('請輸入開封日期（格式：YYYY-MM-DD）', today);
+  if (!dateStr) return;
+  const p = myProducts.find(p => p.id === id);
+  if (!p) return;
+  p.openedDate = dateStr;
+  saveProducts();
+  renderRoutine();
+}
+
 // 初始化成分標籤
 function initTags() {
   const container = document.getElementById('ingredientTags');
@@ -498,17 +605,23 @@ function addProduct() {
   else if (times.every(t => t === 'pm')) time = 'pm';
 
   const productName = name || selectedTags.map(t => t.dataset.name).join(' + ');
+  const pao = parseInt(document.getElementById('paoPicker').value) || 12;
+  const openedDate = document.getElementById('openedDate').value || null;
 
   myProducts.push({
     id: Date.now(),
     name: productName,
     ingredients,
     time,
+    pao,
+    openedDate,
   });
 
   // 重置表單
   document.getElementById('productName').value = '';
   document.getElementById('presetProduct').value = '';
+  document.getElementById('openedDate').value = '';
+  document.getElementById('paoPicker').value = '12';
   document.querySelectorAll('.tag.selected').forEach(t => t.classList.remove('selected'));
   document.getElementById('productPreview').style.display = 'none';
 
@@ -540,18 +653,46 @@ function renderRoutine() {
         <p>${currentTab === 'am' ? '早上' : currentTab === 'pm' ? '晚上' : '皆可'}還沒有保養品</p>
       </div>`;
   } else {
-    list.innerHTML = filtered.map((p, idx) => `
-      <div class="product-item ${p.time}">
-        <span class="share-step-num">${idx + 1}</span>
-        <span class="name">${escapeHtml(p.name)}</span>
-        <span class="time-badge ${p.time}">${p.time === 'am' ? '☀️ 早上' : p.time === 'pm' ? '🌙 晚上' : '🔄 皆可'}</span>
-        <button class="remove-btn" onclick="removeProduct(${p.id})">✕</button>
-      </div>
-    `).join('');
+    list.innerHTML = filtered.map((p, idx) => {
+      const exp = getExpiryInfo(p);
+      const expiryHtml = exp.status === 'none'
+        ? `<button class="set-date-btn" onclick="setOpenedDate(${p.id})">📅 記錄開封日</button>`
+        : `<span class="expiry-badge ${exp.status}">${exp.text}</span>`;
+      return `
+        <div class="product-item ${p.time}">
+          <span class="share-step-num">${idx + 1}</span>
+          <div style="flex:1;min-width:0;">
+            <span class="name">${escapeHtml(p.name)}</span>
+            <div class="expiry-row">${expiryHtml}</div>
+          </div>
+          <span class="time-badge ${p.time}">${p.time === 'am' ? '☀️' : p.time === 'pm' ? '🌙' : '🔄'}</span>
+          <button class="remove-btn" onclick="removeProduct(${p.id})">✕</button>
+        </div>`;
+    }).join('');
   }
 
+  renderExpiryWarnings();
   checkConflicts();
   renderShareSection();
+}
+
+function renderExpiryWarnings() {
+  const area = document.getElementById('expiryWarningArea');
+  const expiring = myProducts
+    .map(p => ({ p, exp: getExpiryInfo(p) }))
+    .filter(({ exp }) => exp.status === 'danger' || exp.status === 'warn')
+    .sort((a, b) => a.exp.daysLeft - b.exp.daysLeft);
+
+  if (expiring.length === 0) { area.innerHTML = ''; return; }
+
+  area.innerHTML = `
+    <div class="expiry-warning-box">
+      <div class="title">⏰ 效期提醒（${expiring.length} 個需注意）</div>
+      ${expiring.map(({ p, exp }) => `
+        <div class="expiry-warning-item">
+          <strong>${escapeHtml(p.name)}</strong> — ${exp.text}
+        </div>`).join('')}
+    </div>`;
 }
 
 function checkConflicts() {
@@ -668,7 +809,11 @@ function saveProducts() {
 function loadProducts() {
   const raw = localStorage.getItem('skincareRoutine_v1');
   if (raw) {
-    try { myProducts = JSON.parse(raw); } catch(e) {}
+    try {
+      const loaded = JSON.parse(raw);
+      // 相容舊資料：補上 pao 預設值
+      myProducts = loaded.map(p => ({ pao: 12, openedDate: null, ...p }));
+    } catch(e) {}
   }
   renderRoutine();
 }
