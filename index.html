@@ -334,6 +334,52 @@
     display: block;
   }
 
+  /* 頻率徽章 */
+  .freq-badge { font-size: 0.72rem; padding: 3px 9px; border-radius: 10px; font-weight: 600; }
+  .freq-badge.daily { background: #e8f5e9; color: #2e7d32; }
+  .freq-badge.weekly-2-3 { background: #fff8e1; color: #f57f17; }
+  .freq-badge.weekly-1 { background: #e3f2fd; color: #1565c0; }
+
+  /* 設定按鈕 */
+  .settings-btn {
+    position: absolute; top: 14px; right: 16px;
+    background: rgba(255,255,255,0.2); border: none; color: white;
+    border-radius: 50%; width: 38px; height: 38px; font-size: 1.1rem;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .settings-btn:hover { background: rgba(255,255,255,0.35); }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box { background: white; border-radius: 20px; padding: 28px; width: 90%; max-width: 420px; box-shadow: 0 8px 40px rgba(0,0,0,0.15); }
+  .modal-box h3 { margin-bottom: 8px; font-size: 1.1rem; }
+  .modal-input { width: 100%; padding: 12px 14px; border: 1.5px solid #e0e0e0; border-radius: 12px; font-size: 0.95rem; margin-bottom: 14px; font-family: monospace; }
+  .modal-input:focus { outline: none; border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 10px; }
+  .btn-secondary { flex: 1; padding: 10px; border: 1.5px solid #e0e0e0; border-radius: 12px; background: white; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: var(--muted); }
+  .btn-save { flex: 1; padding: 10px; border: none; border-radius: 12px; background: var(--accent); color: white; cursor: pointer; font-size: 0.9rem; font-weight: 600; }
+
+  /* AI 卡片 */
+  .ai-mode-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .ai-mode-tab { flex: 1; padding: 9px; border: 1.5px solid #e0e0e0; border-radius: 10px; background: white; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: var(--muted); transition: all 0.15s; }
+  .ai-mode-tab.active { border-color: var(--accent); color: var(--accent); background: #fff5f2; }
+  .ai-photo-drop { border: 2px dashed #e0e0e0; border-radius: 12px; padding: 32px 20px; text-align: center; color: var(--muted); cursor: pointer; transition: border-color 0.2s; }
+  .ai-photo-drop:hover, .ai-photo-drop.drag-over { border-color: var(--accent); }
+  .ai-photo-drop img { max-height: 150px; max-width: 100%; border-radius: 8px; object-fit: contain; }
+  .ai-result-item { background: #fafafa; border-radius: 12px; padding: 14px 16px; border-left: 4px solid var(--accent); display: flex; align-items: flex-start; gap: 12px; }
+  .ai-result-info { flex: 1; min-width: 0; }
+  .ai-result-name { font-weight: 700; font-size: 0.95rem; }
+  .ai-result-note { font-size: 0.8rem; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+  .ai-result-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .ai-add-btn { padding: 6px 14px; background: var(--accent); color: white; border: none; border-radius: 10px; font-size: 0.82rem; font-weight: 600; cursor: pointer; white-space: nowrap; align-self: center; }
+  .ai-add-btn:hover { opacity: 0.85; }
+  .ai-add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
   @media (max-width: 480px) {
     header h1 { font-size: 1.4rem; }
     .card { padding: 18px; }
@@ -342,10 +388,24 @@
 </head>
 <body>
 
-<header>
+<header style="position:relative;">
+  <button class="settings-btn" onclick="openSettings()" title="設定 Gemini API Key">⚙️</button>
   <h1>🧴 保養流程助手</h1>
   <p>輸入你的保養品，幫你排好早晚順序、檢查成分衝突</p>
 </header>
+
+<!-- 設定 Modal -->
+<div class="modal-overlay" id="settingsModal" onclick="if(event.target===this)closeSettings()">
+  <div class="modal-box">
+    <h3>⚙️ Gemini API Key</h3>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:12px;">AI 分析功能需要 Gemini API Key（免費申請，只存在本機）</p>
+    <input type="password" class="modal-input" id="apiKeyInput" placeholder="AIza..." />
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeSettings()">取消</button>
+      <button class="btn-save" onclick="saveSettings()">儲存</button>
+    </div>
+  </div>
+</div>
 
 <div class="container">
 
@@ -387,6 +447,48 @@
         💡 預判：這瓶適合 <strong id="previewTime" style="color:var(--accent);"></strong>
       </p>
     </div>
+  </div>
+
+  <!-- AI 分析助手 -->
+  <div class="card">
+    <h2>🤖 AI 分析助手</h2>
+    <p style="font-size:0.85rem;color:var(--muted);margin-bottom:14px;">說出你的產品名稱，或拍下成分表，AI 幫你分析使用順序和頻率</p>
+
+    <div class="ai-mode-tabs">
+      <button class="ai-mode-tab active" id="tabText" onclick="switchAiMode('text')">📝 文字描述</button>
+      <button class="ai-mode-tab" id="tabPhoto" onclick="switchAiMode('photo')">📸 拍照上傳</button>
+    </div>
+
+    <div id="aiTextMode">
+      <textarea id="aiTextInput" style="width:100%;height:80px;padding:12px 14px;border:1.5px solid #e0e0e0;border-radius:12px;font-size:0.9rem;resize:none;font-family:inherit;margin-bottom:0;" placeholder="例如：SK-II 神仙水、雅詩蘭黛小棕瓶、理膚寶水 B5 精華&#10;或：一個白色瓶子，成分有水楊酸、甘油..."></textarea>
+    </div>
+
+    <div id="aiPhotoMode" style="display:none;">
+      <div class="ai-photo-drop" id="aiPhotoDrop" onclick="document.getElementById('aiPhotoInput').click()">
+        <div id="aiPhotoPlaceholder">
+          <div style="font-size:2rem;margin-bottom:8px;">📸</div>
+          <p>點擊或拖曳照片到這裡</p>
+          <p style="font-size:0.8rem;margin-top:4px;">拍包裝背面的成分表效果最好</p>
+        </div>
+        <img id="aiPhotoPreview" style="display:none;">
+      </div>
+      <input type="file" id="aiPhotoInput" accept="image/*" style="display:none;" onchange="handlePhotoUpload(event)">
+    </div>
+
+    <button class="btn btn-primary" id="aiAnalyzeBtn" onclick="analyzeWithAI()" style="margin-top:12px;">✨ 開始分析</button>
+
+    <div id="aiLoading" style="display:none;text-align:center;padding:20px;color:var(--muted);">
+      <div style="font-size:1.5rem;margin-bottom:8px;">🔮</div>
+      <p>AI 分析中...</p>
+    </div>
+
+    <div id="aiResults" style="display:none;margin-top:16px;">
+      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:10px;" id="aiResultCount"></p>
+      <div class="product-list" id="aiResultList" style="gap:8px;"></div>
+      <button onclick="addAllFromAI()" style="width:100%;margin-top:10px;padding:10px;border:1.5px dashed var(--accent);border-radius:12px;background:none;color:var(--accent);font-weight:600;cursor:pointer;font-size:0.9rem;">全部加入流程</button>
+    </div>
+
+    <div id="aiError" style="display:none;background:#fff0f0;border:1.5px solid var(--danger);border-radius:10px;padding:12px;margin-top:12px;font-size:0.85rem;color:var(--danger);"></div>
   </div>
 
   <!-- 我的流程 -->
@@ -653,6 +755,11 @@ function renderRoutine() {
         <p>${currentTab === 'am' ? '早上' : currentTab === 'pm' ? '晚上' : '皆可'}還沒有保養品</p>
       </div>`;
   } else {
+    const freqBadge = (f) => {
+      const map = { '每天': 'daily', '每週2-3次': 'weekly-2-3', '每週1次': 'weekly-1' };
+      const cls = map[f];
+      return cls ? `<span class="freq-badge ${cls}">${f}</span>` : '';
+    };
     list.innerHTML = filtered.map((p, idx) => {
       const exp = getExpiryInfo(p);
       const expiryHtml = exp.status === 'none'
@@ -663,7 +770,7 @@ function renderRoutine() {
           <span class="share-step-num">${idx + 1}</span>
           <div style="flex:1;min-width:0;">
             <span class="name">${escapeHtml(p.name)}</span>
-            <div class="expiry-row">${expiryHtml}</div>
+            <div class="expiry-row">${expiryHtml}${freqBadge(p.frequency)}</div>
           </div>
           <span class="time-badge ${p.time}">${p.time === 'am' ? '☀️' : p.time === 'pm' ? '🌙' : '🔄'}</span>
           <button class="remove-btn" onclick="removeProduct(${p.id})">✕</button>
@@ -812,7 +919,7 @@ function loadProducts() {
     try {
       const loaded = JSON.parse(raw);
       // 相容舊資料：補上 pao 預設值
-      myProducts = loaded.map(p => ({ pao: 12, openedDate: null, ...p }));
+      myProducts = loaded.map(p => ({ pao: 12, openedDate: null, frequency: null, ...p }));
     } catch(e) {}
   }
   renderRoutine();
@@ -824,9 +931,195 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// ===== Gemini AI 功能 =====
+let aiPhotoBase64 = null;
+let aiCurrentMode = 'text';
+let aiSuggestions = [];
+
+function getGeminiKey() { return localStorage.getItem('skincare_gemini_key') ?? ''; }
+function openSettings() {
+  document.getElementById('apiKeyInput').value = getGeminiKey();
+  document.getElementById('settingsModal').classList.add('open');
+}
+function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); }
+function saveSettings() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (key) localStorage.setItem('skincare_gemini_key', key);
+  else localStorage.removeItem('skincare_gemini_key');
+  closeSettings();
+}
+
+function switchAiMode(mode) {
+  aiCurrentMode = mode;
+  document.getElementById('tabText').classList.toggle('active', mode === 'text');
+  document.getElementById('tabPhoto').classList.toggle('active', mode === 'photo');
+  document.getElementById('aiTextMode').style.display = mode === 'text' ? 'block' : 'none';
+  document.getElementById('aiPhotoMode').style.display = mode === 'photo' ? 'block' : 'none';
+  document.getElementById('aiResults').style.display = 'none';
+  document.getElementById('aiError').style.display = 'none';
+}
+
+function handlePhotoUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    aiPhotoBase64 = e.target.result;
+    document.getElementById('aiPhotoPlaceholder').style.display = 'none';
+    const preview = document.getElementById('aiPhotoPreview');
+    preview.src = aiPhotoBase64;
+    preview.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function initAI() {
+  const drop = document.getElementById('aiPhotoDrop');
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag-over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault();
+    drop.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      aiPhotoBase64 = ev.target.result;
+      document.getElementById('aiPhotoPlaceholder').style.display = 'none';
+      const preview = document.getElementById('aiPhotoPreview');
+      preview.src = aiPhotoBase64;
+      preview.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function callGemini(body) {
+  const key = getGeminiKey();
+  if (!key) throw new Error('請先點右上角 ⚙️ 設定 Gemini API Key');
+  const resp = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+  );
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error?.message ?? `API 錯誤 ${resp.status}`);
+  }
+  const data = await resp.json();
+  return data.candidates[0].content.parts[0].text.trim();
+}
+
+const AI_SYSTEM_PROMPT = `你是保養品專家。根據輸入的資訊分析保養品，回傳 JSON array：
+[{
+  "name": "產品名稱",
+  "ingredients": [],
+  "time": "am或pm或both",
+  "frequency": "每天或每週2-3次或每週1次",
+  "step": 1,
+  "note": "一句話使用建議"
+}]
+ingredients 只填本系統支援的成分名稱（水楊酸/果酸/杏仁酸/乳酸/甘醇酸/A醇/視黃醇/A醛/A酸/維他命C/左旋C/乙基維他命C/菸鹼醯胺/玻尿酸/神經醯胺/角鯊烷/甘油/泛醇/防曬/防曬乳/胜肽/藍銅胜肽/積雪草/蘆薈/洋甘菊/維他命E/白藜蘆醇/傳明酸/熊果素/益生菌/酵母），不確定就填空陣列。
+step 是建議使用順序（1最先）。只回傳 JSON，不要其他文字。`;
+
+async function analyzeWithAI() {
+  if (!getGeminiKey()) { openSettings(); return; }
+  document.getElementById('aiResults').style.display = 'none';
+  document.getElementById('aiError').style.display = 'none';
+  document.getElementById('aiLoading').style.display = 'block';
+  document.getElementById('aiAnalyzeBtn').disabled = true;
+
+  try {
+    let raw;
+    if (aiCurrentMode === 'text') {
+      const text = document.getElementById('aiTextInput').value.trim();
+      if (!text) throw new Error('請先輸入產品資訊');
+      raw = await callGemini({
+        contents: [{ parts: [{ text: `${AI_SYSTEM_PROMPT}\n\n產品資訊：\n${text}` }] }],
+        generationConfig: { response_mime_type: 'application/json' },
+      });
+    } else {
+      if (!aiPhotoBase64) throw new Error('請先上傳照片');
+      const mimeType = aiPhotoBase64.startsWith('data:image/png') ? 'image/png' : 'image/jpeg';
+      raw = await callGemini({
+        contents: [{ parts: [
+          { text: `${AI_SYSTEM_PROMPT}\n\n請從照片中識別保養品資訊：` },
+          { inline_data: { mime_type: mimeType, data: aiPhotoBase64.split(',')[1] } },
+        ]}],
+        generationConfig: { response_mime_type: 'application/json' },
+      });
+    }
+
+    aiSuggestions = JSON.parse(raw);
+    if (!Array.isArray(aiSuggestions) || aiSuggestions.length === 0) throw new Error('AI 沒有識別到保養品，請換個描述方式');
+    aiSuggestions.sort((a, b) => (a.step || 0) - (b.step || 0));
+    renderAiResults();
+  } catch (e) {
+    document.getElementById('aiError').textContent = e.message;
+    document.getElementById('aiError').style.display = 'block';
+  } finally {
+    document.getElementById('aiLoading').style.display = 'none';
+    document.getElementById('aiAnalyzeBtn').disabled = false;
+  }
+}
+
+const TIME_LABELS = { am: '☀️ 早', pm: '🌙 晚', both: '🔄 早晚' };
+const FREQ_MAP = { '每天': 'daily', '每週2-3次': 'weekly-2-3', '每週1次': 'weekly-1' };
+
+function renderAiResults() {
+  const list = document.getElementById('aiResultList');
+  list.innerHTML = aiSuggestions.map((s, i) => {
+    const freqCls = FREQ_MAP[s.frequency];
+    const freqHtml = freqCls ? `<span class="freq-badge ${freqCls}">${s.frequency}</span>` : '';
+    return `
+      <div class="ai-result-item">
+        <span class="share-step-num">${i + 1}</span>
+        <div class="ai-result-info">
+          <div class="ai-result-name">${escapeHtml(s.name)}</div>
+          <div class="ai-result-badges">
+            <span class="time-badge ${s.time}" style="font-size:0.72rem;padding:3px 9px;">${TIME_LABELS[s.time] || s.time}</span>
+            ${freqHtml}
+          </div>
+          ${s.note ? `<div class="ai-result-note">${escapeHtml(s.note)}</div>` : ''}
+        </div>
+        <button class="ai-add-btn" id="aiAddBtn_${i}" onclick="addFromAI(${i})">加入</button>
+      </div>`;
+  }).join('');
+  document.getElementById('aiResultCount').textContent = `找到 ${aiSuggestions.length} 個產品，確認後加入流程：`;
+  document.getElementById('aiResults').style.display = 'block';
+}
+
+function addFromAI(idx) {
+  const s = aiSuggestions[idx];
+  if (!s) return;
+  const ingredients = (s.ingredients || [])
+    .filter(name => INGREDIENTS[name])
+    .map(name => ({ name, ...INGREDIENTS[name] }));
+  myProducts.push({
+    id: Date.now() + idx,
+    name: s.name,
+    ingredients,
+    time: s.time || 'both',
+    frequency: s.frequency || null,
+    pao: 12,
+    openedDate: null,
+  });
+  saveProducts();
+  renderRoutine();
+  const btn = document.getElementById(`aiAddBtn_${idx}`);
+  if (btn) { btn.textContent = '✓ 已加入'; btn.disabled = true; }
+}
+
+function addAllFromAI() {
+  aiSuggestions.forEach((_, i) => {
+    const btn = document.getElementById(`aiAddBtn_${i}`);
+    if (!btn?.disabled) addFromAI(i);
+  });
+}
+
 // 初始化
 initTags();
 initPresets();
+initAI();
 loadProducts();
 </script>
 
