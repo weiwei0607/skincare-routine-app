@@ -604,6 +604,7 @@ const PRESETS = {
 
 let myProducts = [];
 let currentTab = 'am';
+let sessionGeminiKey = '';
 
 // 計算效期資訊
 function getExpiryInfo(p) {
@@ -717,7 +718,7 @@ function addProduct() {
   const openedDate = document.getElementById('openedDate').value || null;
 
   myProducts.push({
-    id: Date.now(),
+    id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : (Date.now() + Math.floor(Math.random() * 1000)),
     name: productName,
     ingredients,
     time,
@@ -958,7 +959,7 @@ let aiPhotoBase64 = null;
 let aiCurrentMode = 'text';
 let aiSuggestions = [];
 
-function getGeminiKey() { return localStorage.getItem('skincare_gemini_key') ?? ''; }
+function getGeminiKey() { return sessionGeminiKey; }
 function openSettings() {
   document.getElementById('apiKeyInput').value = getGeminiKey();
   document.getElementById('settingsModal').classList.add('open');
@@ -966,8 +967,7 @@ function openSettings() {
 function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); }
 function saveSettings() {
   const key = document.getElementById('apiKeyInput').value.trim();
-  if (key) localStorage.setItem('skincare_gemini_key', key);
-  else localStorage.removeItem('skincare_gemini_key');
+  sessionGeminiKey = key || '';
   closeSettings();
 }
 
@@ -1138,7 +1138,7 @@ function addFromAI(idx) {
     .filter(name => INGREDIENTS[name])
     .map(name => ({ name, ...INGREDIENTS[name] }));
   myProducts.push({
-    id: Date.now() + idx,
+    id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : (Date.now() + Math.floor(Math.random() * 1000) + idx),
     name: s.name,
     ingredients,
     time: s.time || 'both',
