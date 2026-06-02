@@ -607,14 +607,16 @@ let currentTab = 'am';
 
 // 計算效期資訊
 function getExpiryInfo(p) {
-  if (!p.openedDate) return { status: 'none', text: '未記錄開封日', daysLeft: null };
+  if (!p.openedDate) return { status: 'none', text: '未設定', daysLeft: null };
   const opened = new Date(p.openedDate);
+  if (isNaN(opened.getTime())) return { status: 'none', text: '日期無效', daysLeft: null };
   const paoMonths = p.pao || 12;
   const expiry = new Date(opened);
   expiry.setMonth(expiry.getMonth() + paoMonths);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const daysLeft = Math.round((expiry - today) / (1000 * 60 * 60 * 24));
+  if (isNaN(daysLeft)) return { status: 'none', text: '日期無效', daysLeft: null };
   if (daysLeft < 0) return { status: 'danger', text: `⚠️ 已過期 ${Math.abs(daysLeft)} 天`, daysLeft };
   if (daysLeft <= 30) return { status: 'warn', text: `🔶 還有 ${daysLeft} 天到期`, daysLeft };
   return { status: 'ok', text: `✅ 還有 ${daysLeft} 天`, daysLeft };
@@ -624,6 +626,10 @@ function setOpenedDate(id) {
   const today = new Date().toISOString().split('T')[0];
   const dateStr = prompt('請輸入開封日期（格式：YYYY-MM-DD）', today);
   if (!dateStr) return;
+  if (isNaN(new Date(dateStr).getTime())) {
+    alert('日期格式無效');
+    return;
+  }
   const p = myProducts.find(p => p.id === id);
   if (!p) return;
   p.openedDate = dateStr;
@@ -758,7 +764,7 @@ function renderRoutine() {
     const freqBadge = (f) => {
       const map = { '每天': 'daily', '每週2-3次': 'weekly-2-3', '每週1次': 'weekly-1' };
       const cls = map[f];
-      return cls ? `<span class="freq-badge ${cls}">${f}</span>` : '';
+      return cls ? `<span class="freq-badge ${cls}">${escapeHtml(f)}</span>` : '';
     };
     list.innerHTML = filtered.map((p, idx) => {
       const exp = getExpiryInfo(p);
@@ -806,22 +812,35 @@ function checkConflicts() {
   const area = document.getElementById('conflictArea');
   if (myProducts.length < 2) { area.innerHTML = ''; return; }
 
-  const allIngredients = myProducts.flatMap(p => p.ingredients);
-  const allCats = allIngredients.map(i => i.cat);
   const found = [];
 
   CONFLICTS.forEach(rule => {
     const [c1, c2] = rule.cats;
-    const hasC1 = allCats.includes(c1);
-    const hasC2 = allCats.includes(c2);
-    if (hasC1 && hasC2) {
-      // 檢查是否同一時段
-      const p1 = myProducts.find(p => p.ingredients.some(i => i.cat === c1));
-      const p2 = myProducts.find(p => p.ingredients.some(i => i.cat === c2));
-      if (p1 && p2 && (p1.time === p2.time || p1.time === 'both' || p2.time === 'both')) {
-        found.push(rule);
+    const prodsWithC1 = myProducts.filter(p => p.ingredients.some(i => i.cat === c1));
+    const prodsWithC2 = myProducts.filter(p => p.ingredients.some(i => i.cat === c2));
+
+    let hasConflict = false;
+    if (c1 === c2) {
+      for (let i = 0; i < prodsWithC1.length; i++) {
+        for (let j = i + 1; j < prodsWithC2.length; j++) {
+          const p1 = prodsWithC1[i], p2 = prodsWithC2[j];
+          if (p1.time === p2.time || p1.time === 'both' || p2.time === 'both') {
+            hasConflict = true; break;
+          }
+        }
+        if (hasConflict) break;
+      }
+    } else {
+      for (const p1 of prodsWithC1) {
+        for (const p2 of prodsWithC2) {
+          if (p1 !== p2 && (p1.time === p2.time || p1.time === 'both' || p2.time === 'both')) {
+            hasConflict = true; break;
+          }
+        }
+        if (hasConflict) break;
       }
     }
+    if (hasConflict) found.push(rule);
   });
 
   if (found.length === 0) {
@@ -920,7 +939,10 @@ function loadProducts() {
       const loaded = JSON.parse(raw);
       // 相容舊資料：補上 pao 預設值
       myProducts = loaded.map(p => ({ pao: 12, openedDate: null, frequency: null, ...p }));
-    } catch(e) {}
+    } catch (e) {
+      console.warn('載入本地資料失敗：', e);
+      myProducts = [];
+    }
   }
   renderRoutine();
 }
@@ -997,16 +1019,36 @@ function initAI() {
 async function callGemini(body) {
   const key = getGeminiKey();
   if (!key) throw new Error('請先點右上角 ⚙️ 設定 Gemini API Key');
-  const resp = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
-    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
-  );
-  if (!resp.ok) {
-    const err = await resp.json().catch(() => ({}));
-    throw new Error(err.error?.message ?? `API 錯誤 ${resp.status}`);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  try {
+    const resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      }
+    );
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error?.message ?? `API 錯誤 ${resp.status}`);
+    }
+    const data = await resp.json();
+    if (!data.candidates || !data.candidates.length) throw new Error('AI 回應異常：沒有候選結果，可能被安全過濾器攔截');
+    const content = data.candidates[0].content;
+    if (!content) throw new Error('AI 回應異常：內容被屏蔽或為空');
+    if (!content.parts || !content.parts.length) throw new Error('AI 回應異常：沒有文字部分');
+    const text = content.parts[0].text;
+    if (typeof text !== 'string') throw new Error('AI 回應異常：回應格式錯誤');
+    return text.trim();
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('連線超時（15秒），請稍後再試');
+    throw e;
+  } finally {
+    clearTimeout(timeoutId);
   }
-  const data = await resp.json();
-  return data.candidates[0].content.parts[0].text.trim();
 }
 
 const AI_SYSTEM_PROMPT = `你是保養品專家。根據輸入的資訊分析保養品，回傳 JSON array：
@@ -1069,14 +1111,15 @@ function renderAiResults() {
   const list = document.getElementById('aiResultList');
   list.innerHTML = aiSuggestions.map((s, i) => {
     const freqCls = FREQ_MAP[s.frequency];
-    const freqHtml = freqCls ? `<span class="freq-badge ${freqCls}">${s.frequency}</span>` : '';
+    const freqHtml = freqCls ? `<span class="freq-badge ${freqCls}">${escapeHtml(s.frequency)}</span>` : '';
+    const timeLabel = TIME_LABELS[s.time] || s.time;
     return `
       <div class="ai-result-item">
         <span class="share-step-num">${i + 1}</span>
         <div class="ai-result-info">
           <div class="ai-result-name">${escapeHtml(s.name)}</div>
           <div class="ai-result-badges">
-            <span class="time-badge ${s.time}" style="font-size:0.72rem;padding:3px 9px;">${TIME_LABELS[s.time] || s.time}</span>
+            <span class="time-badge ${escapeHtml(s.time)}" style="font-size:0.72rem;padding:3px 9px;">${escapeHtml(timeLabel)}</span>
             ${freqHtml}
           </div>
           ${s.note ? `<div class="ai-result-note">${escapeHtml(s.note)}</div>` : ''}
