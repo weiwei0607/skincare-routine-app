@@ -1063,8 +1063,31 @@ const AI_SYSTEM_PROMPT = `你是保養品專家。根據輸入的資訊分析保
 ingredients 只填本系統支援的成分名稱（水楊酸/果酸/杏仁酸/乳酸/甘醇酸/A醇/視黃醇/A醛/A酸/維他命C/左旋C/乙基維他命C/菸鹼醯胺/玻尿酸/神經醯胺/角鯊烷/甘油/泛醇/防曬/防曬乳/胜肽/藍銅胜肽/積雪草/蘆薈/洋甘菊/維他命E/白藜蘆醇/傳明酸/熊果素/益生菌/酵母），不確定就填空陣列。
 step 是建議使用順序（1最先）。只回傳 JSON，不要其他文字。`;
 
+function _skincareCacheKey() {
+  if (aiCurrentMode === 'text') {
+    const text = document.getElementById('aiTextInput').value.trim();
+    return 'skin_ai_t_' + text.slice(0, 50).replace(/\s+/g, '_');
+  }
+  return 'skin_ai_p_' + (aiPhotoBase64 ? aiPhotoBase64.slice(0, 80).replace(/[^a-zA-Z0-9]/g, '') : 'empty');
+}
+
 async function analyzeWithAI() {
   if (!getGeminiKey()) { openSettings(); return; }
+
+  // 檢查快取（30 分鐘 TTL）
+  const cacheKey = _skincareCacheKey();
+  const cachedRaw = localStorage.getItem(cacheKey);
+  const cachedTime = localStorage.getItem(cacheKey + '_time');
+  const now = Date.now();
+  if (cachedRaw && cachedTime && now - parseInt(cachedTime) < 1800000) {
+    try {
+      aiSuggestions = JSON.parse(cachedRaw);
+      aiSuggestions.sort((a, b) => (a.step || 0) - (b.step || 0));
+      renderAiResults();
+      return;
+    } catch (_) { /* 快取損壞，繼續呼叫 API */ }
+  }
+
   document.getElementById('aiResults').style.display = 'none';
   document.getElementById('aiError').style.display = 'none';
   document.getElementById('aiLoading').style.display = 'block';
@@ -1094,6 +1117,9 @@ async function analyzeWithAI() {
     aiSuggestions = JSON.parse(raw);
     if (!Array.isArray(aiSuggestions) || aiSuggestions.length === 0) throw new Error('AI 沒有識別到保養品，請換個描述方式');
     aiSuggestions.sort((a, b) => (a.step || 0) - (b.step || 0));
+    // 寫入快取
+    localStorage.setItem(cacheKey, JSON.stringify(aiSuggestions));
+    localStorage.setItem(cacheKey + '_time', String(Date.now()));
     renderAiResults();
   } catch (e) {
     document.getElementById('aiError').textContent = e.message;
